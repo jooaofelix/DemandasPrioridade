@@ -1,0 +1,128 @@
+rules_version = '2';
+
+// Modelo: cada usuário só enxerga e escreve dentro de /users/{uid}/**.
+// Isso implementa isolamento total por UID (seção 22/23 do produto).
+// Validações de campo cobrem os tipos e limites de tamanho mais importantes;
+// o cliente também valida com Zod antes de enviar (defesa em profundidade).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isShortString(field, maxLen) {
+      return field is string && field.size() <= maxLen;
+    }
+
+    function optionalShortString(data, field, maxLen) {
+      return !(field in data) || data[field] == null || isShortString(data[field], maxLen);
+    }
+
+    function hasTimestamps(data) {
+      return data.createdAt is timestamp && data.updatedAt is timestamp;
+    }
+
+    // ---- users/{uid}: perfil + configurações + preferências de notificação ----
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && request.resource.data.uid == uid
+        && optionalShortString(request.resource.data, 'displayName', 120);
+      allow update: if isOwner(uid) && request.resource.data.uid == uid;
+      allow delete: if isOwner(uid);
+    }
+
+    // ---- tasks ----
+    match /users/{uid}/tasks/{taskId} {
+      allow read, delete: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && isShortString(request.resource.data.title, 280)
+        && request.resource.data.status in ['inbox', 'planned', 'active', 'done', 'postponed', 'cancelled']
+        && hasTimestamps(request.resource.data);
+      allow update: if isOwner(uid)
+        && isShortString(request.resource.data.title, 280)
+        && request.resource.data.status in ['inbox', 'planned', 'active', 'done', 'postponed', 'cancelled'];
+
+      match /subtasks/{subtaskId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && isShortString(request.resource.data.title, 280)
+          && request.resource.data.done is bool;
+      }
+    }
+
+    // ---- inbox: descarga mental rápida ----
+    match /users/{uid}/inboxItems/{itemId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && isShortString(request.resource.data.content, 2000)
+        && hasTimestamps(request.resource.data);
+    }
+
+    // ---- planejamento diário ----
+    match /users/{uid}/dailyPlans/{planId} {
+      allow read, write, delete: if isOwner(uid);
+    }
+
+    // ---- rotinas ----
+    match /users/{uid}/routines/{routineId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid) && isShortString(request.resource.data.name, 160);
+
+      match /steps/{stepId} {
+        allow read, write, delete: if isOwner(uid);
+      }
+    }
+
+    // ---- sessões de foco ----
+    match /users/{uid}/focusSessions/{sessionId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.plannedMinutes is number
+        && request.resource.data.plannedMinutes > 0
+        && request.resource.data.plannedMinutes <= 240;
+    }
+
+    // ---- notas de distração (estacionamento durante o foco) ----
+    match /users/{uid}/distractionNotes/{noteId} {
+      allow read, write, delete: if isOwner(uid)
+        && optionalShortString(request.resource.data, 'content', 500);
+    }
+
+    // ---- lembretes ----
+    match /users/{uid}/reminders/{reminderId} {
+      allow read, write, delete: if isOwner(uid);
+    }
+
+    // ---- check-ins de energia ----
+    match /users/{uid}/energyCheckins/{checkinId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.level in ['low', 'medium', 'high'];
+    }
+
+    // ---- revisão semanal (gerada no cliente a partir dos dados do próprio usuário) ----
+    match /users/{uid}/weeklyReviews/{reviewId} {
+      allow read, write, delete: if isOwner(uid);
+    }
+
+    // ---- recompensas e conquistas (gamificação ética, sem valor monetário) ----
+    match /users/{uid}/rewards/{rewardId} {
+      allow read, write, delete: if isOwner(uid);
+    }
+    match /users/{uid}/achievements/{achievementId} {
+      allow read, write, delete: if isOwner(uid);
+    }
+
+    // Bloqueia qualquer outro caminho não listado explicitamente acima.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

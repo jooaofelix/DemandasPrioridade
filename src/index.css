@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-surface: 255 255 255;
+  --color-surface-raised: 255 255 255;
+  --color-surface-sunken: 246 247 251;
+  --color-ink: 15 23 42;
+  --color-ink-muted: 71 85 105;
+  --color-ink-faint: 148 163 184;
+  --color-brand-50: 238 242 255;
+  --color-brand-100: 224 231 255;
+  --color-brand-400: 129 140 248;
+  --color-brand-500: 99 102 241;
+  --color-brand-600: 79 70 229;
+  --color-brand-700: 55 48 163;
+  --color-success: 22 163 74;
+  --color-warning: 202 138 4;
+  --color-danger: 220 38 38;
+  --color-border: 226 232 240;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --color-surface: 15 17 24;
+  --color-surface-raised: 24 27 36;
+  --color-surface-sunken: 10 11 16;
+  --color-ink: 241 245 249;
+  --color-ink-muted: 165 176 194;
+  --color-ink-faint: 100 112 132;
+  --color-brand-50: 30 30 55;
+  --color-brand-100: 40 40 75;
+  --color-brand-400: 165 180 252;
+  --color-brand-500: 129 140 248;
+  --color-brand-600: 99 102 241;
+  --color-brand-700: 165 180 252;
+  --color-success: 74 222 128;
+  --color-warning: 250 204 21;
+  --color-danger: 248 113 113;
+  --color-border: 39 42 54;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-surface: 15 17 24;
+    --color-surface-raised: 24 27 36;
+    --color-surface-sunken: 10 11 16;
+    --color-ink: 241 245 249;
+    --color-ink-muted: 165 176 194;
+    --color-ink-faint: 100 112 132;
+    --color-brand-50: 30 30 55;
+    --color-brand-100: 40 40 75;
+    --color-brand-400: 165 180 252;
+    --color-brand-500: 129 140 248;
+    --color-brand-600: 99 102 241;
+    --color-brand-700: 165 180 252;
+    --color-success: 74 222 128;
+    --color-warning: 250 204 21;
+    --color-danger: 248 113 113;
+    --color-border: 39 42 54;
+    color-scheme: dark;
+  }
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-surface-sunken text-ink font-sans antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--color-brand-500));
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  .no-motion * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
