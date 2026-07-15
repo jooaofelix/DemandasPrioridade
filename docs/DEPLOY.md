@@ -7,8 +7,12 @@ npm install
 npm run build
 ```
 
-Isso gera a pasta `dist/` com o app estático (inclui `manifest.webmanifest`,
-service worker e o arquivo `_redirects` necessário para o roteamento de SPA).
+Isso gera a pasta `dist/` com o app estático (inclui `manifest.webmanifest`
+e o service worker). O roteamento de SPA é resolvido pela configuração
+`assets.not_found_handling: "single-page-application"` em `wrangler.jsonc`
+— não use um arquivo `_redirects` com uma regra `/* /index.html 200`, pois
+isso conflita com o modo `single-page-application` do Cloudflare e gera o
+erro "Infinite loop detected in this rule" no deploy.
 
 ## Opção A — Dashboard do Cloudflare (mais simples)
 
@@ -29,10 +33,15 @@ service worker e o arquivo `_redirects` necessário para o roteamento de SPA).
 
 ## Opção B — CLI (`wrangler`)
 
+Este repositório inclui um `wrangler.jsonc` configurado para publicar `dist/`
+como assets estáticos (com fallback de SPA nativo, sem precisar de
+`_redirects`):
+
 ```bash
 npm install -g wrangler
 wrangler login
-wrangler pages deploy dist --project-name=agora
+npm run build
+wrangler deploy
 ```
 
 ## Domínio customizado
